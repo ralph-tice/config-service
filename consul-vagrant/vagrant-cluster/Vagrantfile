@@ -32,13 +32,14 @@ echo Installing Consul Web UI...
 
 sudo mkdir $WEB_INSTALL_DIR
 sudo chown vagrant.vagrant $WEB_INSTALL_DIR
-cd $WEB_INSTALL_DIR && unzip /tmp/consul_web_ui.zip
+cd $WEB_INSTALL_DIR && unzip -o /tmp/consul_web_ui.zip
 
 # TODO - pull consul agent into service wrapper (runit?) to daemonize
-cd ~
+cd /home/vagrant
 echo -e '#!/bin/bash' > start_consul.sh
 
 echo "consul agent -ui-dir $WEB_INSTALL_DIR/dist -data-dir $CONSUL_DATA_DIR -bootstrap-expect 1 -server" >> start_consul.sh
+sudo chmod +x ./start_consul.sh
 
 SCRIPT
 
