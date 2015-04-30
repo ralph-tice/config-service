@@ -3,7 +3,12 @@
 $script = <<SCRIPT
 
 echo Installing dependencies...
-sudo apt-get install -y unzip curl
+sudo apt-get install -y unzip curl tmux
+
+# TODO: create a deb package for jq (use FPM), ghetto install for now
+wget http://stedolan.github.io/jq/download/linux64/jq -O /tmp/jq
+sudo mv /tmp/jq /usr/bin/jq
+sudo chmod +x /usr/bin/jq
 
 echo Fetching Consul...
 cd /tmp/
@@ -13,6 +18,27 @@ echo Installing Consul...
 unzip consul.zip
 sudo chmod +x consul
 sudo mv consul /usr/bin/consul
+
+CONSUL_DIR=/usr/local/share/consul
+CONSUL_DATA_DIR="${CONSUL_DIR}/data"
+WEB_INSTALL_DIR=/usr/local/share/consul-web-ui/
+
+sudo mkdir $CONSUL_DATA_DIR -p
+sudo chown -R vagrant.vagrant $CONSUL_DIR
+
+# be warned, this archive is awful and dumps into the same folder you extract it to --rtice
+wget https://dl.bintray.com/mitchellh/consul/0.5.0_web_ui.zip -O /tmp/consul_web_ui.zip
+echo Installing Consul Web UI...
+
+sudo mkdir $WEB_INSTALL_DIR
+sudo chown vagrant.vagrant $WEB_INSTALL_DIR
+cd $WEB_INSTALL_DIR && unzip /tmp/consul_web_ui.zip
+
+# TODO - pull consul agent into service wrapper (runit?) to daemonize
+cd ~
+echo -e '#!/bin/bash' > start_consul.sh
+
+echo "consul agent -ui-dir $WEB_INSTALL_DIR/dist -data-dir $CONSUL_DATA_DIR -bootstrap-expect 1 -server" >> start_consul.sh
 
 SCRIPT
 
@@ -27,10 +53,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define "n1" do |n1|
       n1.vm.hostname = "n1"
       n1.vm.network "private_network", ip: "172.20.20.10"
+
+      # TODO - straighten out port forwarding for web UI
+      n1.vm.network "forwarded_port", guest: 8500, host: 8500
   end
 
-  config.vm.define "n2" do |n2|
-      n2.vm.hostname = "n2"
-      n2.vm.network "private_network", ip: "172.20.20.11"
-  end
+  # TODO - have second node join the cluster
+  #config.vm.define "n2" do |n2|
+  #    n2.vm.hostname = "n2"
+  #    n2.vm.network "private_network", ip: "172.20.20.11"
+  #end
 end
